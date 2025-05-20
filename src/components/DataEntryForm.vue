@@ -1,4 +1,4 @@
-<!-- src/components/DataEntryForm.vue (Completo) -->
+<!-- src/components/DataEntryForm.vue (Con ID como desplegable) -->
 <template>
   <div class="card-body">
     <!-- Formulario de entrada (ocupa todo el ancho) -->
@@ -72,14 +72,19 @@
                   <div class="row g-2">
                     <div class="col-md-3">
                       <label class="form-label small">ID:</label>
-                      <input 
-                        type="text" 
-                        class="form-control form-control-sm" 
+                      <!-- Selector de ID en lugar de input text -->
+                      <select 
+                        class="form-select form-select-sm" 
                         v-model="concept.id" 
                         required
-                        @input="validateInputs(); saveData()"
+                        @change="onConceptIdChange(index); validateInputs(); saveData()"
                         :class="{'is-invalid': isDuplicateId(concept.id, index)}"
                       >
+                        <option value="">Seleccione...</option>
+                        <option value="HO">HO</option>
+                        <option value="HED">HED</option>
+                        <option value="HEN">HEN</option>
+                      </select>
                       <div v-if="isDuplicateId(concept.id, index)" class="invalid-feedback">
                         ID duplicado
                       </div>
@@ -198,10 +203,42 @@ export default {
       attendanceOut: this.initialData.attendanceOut,
       concepts: [...this.initialData.concepts], // Clonar el array para evitar mutaciones
       loading: false,
-      hasErrors: false
+      hasErrors: false,
+      // Mapeo de IDs a nombres completos
+      conceptNamesMap: {
+        "HO": "Horas Ordinarias",
+        "HED": "Horas Extras Diurnas",
+        "HEN": "Horas Extras Nocturnas"
+      },
+      // Configuración predeterminada de horarios por concepto
+      conceptDefaultTimes: {
+        "HO": { start: "08:00", end: "17:59" },
+        "HED": { start: "18:00", end: "20:59" },
+        "HEN": { start: "21:00", end: "05:59" }
+      }
     };
   },
   methods: {
+    // Método para manejar el cambio de ID y actualizar automáticamente el nombre
+    onConceptIdChange(index) {
+      const concept = this.concepts[index];
+      const selectedId = concept.id;
+      
+      // Si hay un ID seleccionado, rellenar el nombre automáticamente
+      if (selectedId && this.conceptNamesMap[selectedId]) {
+        concept.name = this.conceptNamesMap[selectedId];
+        
+        // Opcionalmente, también podemos establecer los horarios predeterminados
+        if (this.conceptDefaultTimes[selectedId]) {
+          concept.start = this.conceptDefaultTimes[selectedId].start;
+          concept.end = this.conceptDefaultTimes[selectedId].end;
+        }
+      }
+      
+      // Validar después del cambio
+      this.validateInputs();
+    },
+    
     // Métodos para conceptos
     addConcept() {
       this.concepts.push({
@@ -274,7 +311,7 @@ export default {
       });
     },
     
-    // Cálculo de horas - MÉTODO MODIFICADO
+    // Cálculo de horas
     async calculateHours() {
       if (this.hasErrors) {
         alert('Por favor, corrija los errores en el formulario antes de continuar.');
@@ -423,6 +460,23 @@ export default {
   padding-right: 5px;
   font-family: monospace;
   text-align: center;
+}
+
+/* Estilo para el select de conceptos */
+.form-select-sm {
+  font-weight: 500;
+}
+
+/* Estilos para opciones del select en modo oscuro */
+:deep(.dark-mode) .form-select {
+  background-color: #495057;
+  color: #f8f9fa;
+  border-color: #6c757d;
+}
+
+:deep(.dark-mode) .form-select option {
+  background-color: #343a40;
+  color: #f8f9fa;
 }
 
 /* En dispositivos móviles, hacer los campos de tiempo más grandes */
